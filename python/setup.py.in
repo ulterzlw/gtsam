@@ -12,8 +12,9 @@ package_data = {
     '': [
         "./*.so",
         "./*.dll",
-        "Data/*"  # Add the data files to the package
-        "Data/**/*"  # Add the data files in subdirectories
+        "Data/*",  # Add the data files to the package
+        "Data/**/*",  # Add the data files in subdirectories
+        "*.pyi", "**/*.pyi",  # Add the type hints
     ]
 }
 
