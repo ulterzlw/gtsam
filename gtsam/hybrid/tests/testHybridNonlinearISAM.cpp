@@ -195,30 +195,33 @@ TEST(HybridNonlinearISAM, IncrementalInference) {
   auto discreteConditional =
       bayesTree[M(1)]->conditional()->asDiscreteConditional();
 
+  std::cout << setprecision(12);
   // Test the probability values with regression tests.
   DiscreteValues assignment;
   EXPECT(assert_equal(0.166667, m00_prob, 1e-5));
   assignment[M(0)] = 0;
   assignment[M(1)] = 0;
-  EXPECT(assert_equal(0.0619233, (*discreteConditional)(assignment), 1e-5));
+  EXPECT(assert_equal(19.8743944759, (*discreteConditional)(assignment), 1e-9));
   assignment[M(0)] = 1;
   assignment[M(1)] = 0;
-  EXPECT(assert_equal(0.183743, (*discreteConditional)(assignment), 1e-5));
+  EXPECT(assert_equal(58.9727026079, (*discreteConditional)(assignment), 1e-9));
   assignment[M(0)] = 0;
   assignment[M(1)] = 1;
-  EXPECT(assert_equal(0.204159, (*discreteConditional)(assignment), 1e-5));
+  EXPECT(assert_equal(65.5252251199, (*discreteConditional)(assignment), 1e-9));
   assignment[M(0)] = 1;
   assignment[M(1)] = 1;
-  EXPECT(assert_equal(0.2, (*discreteConditional)(assignment), 1e-5));
+  EXPECT(assert_equal(64.1903418014, (*discreteConditional)(assignment), 1e-9));
 
   // Check if the clique conditional generated from incremental elimination
   // matches that of batch elimination.
   auto expectedChordal = expectedRemainingGraph->eliminateMultifrontal();
   auto actualConditional = dynamic_pointer_cast<DecisionTreeFactor>(
       bayesTree[M(1)]->conditional()->inner());
+
   // Account for the probability terms from evaluating continuous FGs
   DiscreteKeys discrete_keys = {{M(0), 2}, {M(1), 2}};
-  vector<double> probs = {0.061923317, 0.20415914, 0.18374323, 0.2};
+  vector<double> probs = {19.8743944759, 65.5252251199, 58.9727026079,
+                          64.1903418014};
   auto expectedConditional =
       boost::make_shared<DecisionTreeFactor>(discrete_keys, probs);
   EXPECT(assert_equal(*actualConditional, *expectedConditional, 1e-6));

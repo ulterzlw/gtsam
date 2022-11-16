@@ -136,7 +136,7 @@ TEST(HybridGaussianFactorGraph, eliminateFullSequentialEqualChance) {
   auto dc = result->at(2)->asDiscreteConditional();
   DiscreteValues dv;
   dv[M(1)] = 0;
-  EXPECT_DOUBLES_EQUAL(1, dc->operator()(dv), 1e-3);
+  EXPECT_DOUBLES_EQUAL(2.2795070569547775, dc->operator()(dv), 1e-3);
 }
 
 /* ************************************************************************* */
@@ -182,8 +182,9 @@ TEST(HybridGaussianFactorGraph, eliminateFullMultifrontalSimple) {
        boost::make_shared<JacobianFactor>(X(1), I_3x3, Vector3::Ones())}));
 
   hfg.add(DecisionTreeFactor(m1, {2, 8}));
-  //TODO(Varun) Adding extra discrete variable not connected to continuous variable throws segfault
-  // hfg.add(DecisionTreeFactor({{M(1), 2}, {M(2), 2}}, "1 2 3 4"));
+  // TODO(Varun) Adding extra discrete variable not connected to continuous
+  // variable throws segfault
+  //  hfg.add(DecisionTreeFactor({{M(1), 2}, {M(2), 2}}, "1 2 3 4"));
 
   HybridBayesTree::shared_ptr result =
       hfg.eliminateMultifrontal(hfg.getHybridOrdering());
