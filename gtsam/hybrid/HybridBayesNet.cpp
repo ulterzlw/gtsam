@@ -73,11 +73,38 @@ std::function<double(const Assignment<Key> &, double)> prunerFunc(
         return probability;
       }
     } else {
+      // Due to branch merging (aka pruning) in DecisionTree, it is possible we
+      // get a `values` which doesn't have the full set of keys.
+      std::set<Key> valuesKeys;
+      for (auto kvp : values) {
+        valuesKeys.insert(kvp.first);
+      }
+      std::set<Key> conditionalKeys;
+      for (auto kvp : conditionalKeySet) {
+        conditionalKeys.insert(kvp.first);
+      }
+      // If true, then values is missing some keys
+      if (conditionalKeys != valuesKeys) {
+        // Get the keys present in conditionalKeys but not in valuesKeys
+        std::vector<Key> missing_keys;
+        std::set_difference(conditionalKeys.begin(), conditionalKeys.end(),
+                            valuesKeys.begin(), valuesKeys.end(),
+                            std::back_inserter(missing_keys));
+        // Insert missing keys with a default assignment.
+        for (auto missing_key : missing_keys) {
+          values[missing_key] = 0;
+        }
+      }
+
+      // Now we generate the full assignment by enumerating
+      // over all keys in the prunedDecisionTree.
+      // First we find the differing keys
       std::vector<DiscreteKey> set_diff;
       std::set_difference(decisionTreeKeySet.begin(), decisionTreeKeySet.end(),
                           conditionalKeySet.begin(), conditionalKeySet.end(),
                           std::back_inserter(set_diff));
 
+      // Now enumerate over all assignments of the differing keys
       const std::vector<DiscreteValues> assignments =
           DiscreteValues::CartesianProduct(set_diff);
       for (const DiscreteValues &assignment : assignments) {
