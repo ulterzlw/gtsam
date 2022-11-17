@@ -45,19 +45,21 @@ DecisionTreeFactor::shared_ptr HybridBayesNet::discreteConditionals() const {
 /**
  * @brief Helper function to get the pruner functional.
  *
- * @param decisionTree The probability decision tree of only discrete keys.
- * @return std::function<GaussianConditional::shared_ptr(
- * const Assignment<Key> &, const GaussianConditional::shared_ptr &)>
+ * @param prunedDecisionTree  The prob. decision tree of only discrete keys.
+ * @param conditional Conditional to prune. Used to get full assignment.
+ * @return std::function<double(const Assignment<Key> &, double)>
  */
 std::function<double(const Assignment<Key> &, double)> prunerFunc(
-    const DecisionTreeFactor &decisionTree,
+    const DecisionTreeFactor &prunedDecisionTree,
     const HybridConditional &conditional) {
   // Get the discrete keys as sets for the decision tree
   // and the gaussian mixture.
-  auto decisionTreeKeySet = DiscreteKeysAsSet(decisionTree.discreteKeys());
-  auto conditionalKeySet = DiscreteKeysAsSet(conditional.discreteKeys());
+  std::set<DiscreteKey> decisionTreeKeySet =
+      DiscreteKeysAsSet(prunedDecisionTree.discreteKeys());
+  std::set<DiscreteKey> conditionalKeySet =
+      DiscreteKeysAsSet(conditional.discreteKeys());
 
-  auto pruner = [decisionTree, decisionTreeKeySet, conditionalKeySet](
+  auto pruner = [prunedDecisionTree, decisionTreeKeySet, conditionalKeySet](
                     const Assignment<Key> &choices,
                     double probability) -> double {
     // typecast so we can use this to get probability value
@@ -65,7 +67,7 @@ std::function<double(const Assignment<Key> &, double)> prunerFunc(
     // Case where the gaussian mixture has the same
     // discrete keys as the decision tree.
     if (conditionalKeySet == decisionTreeKeySet) {
-      if (decisionTree(values) == 0) {
+      if (prunedDecisionTree(values) == 0) {
         return 0.0;
       } else {
         return probability;
@@ -84,7 +86,7 @@ std::function<double(const Assignment<Key> &, double)> prunerFunc(
 
         // If any one of the sub-branches are non-zero,
         // we need this probability.
-        if (decisionTree(augmented_values) > 0.0) {
+        if (prunedDecisionTree(augmented_values) > 0.0) {
           return probability;
         }
       }
@@ -104,10 +106,7 @@ void HybridBayesNet::updateDiscreteConditionals(
   for (size_t i = 0; i < this->size(); i++) {
     HybridConditional::shared_ptr conditional = this->at(i);
     if (conditional->isDiscrete()) {
-      // std::cout << demangle(typeid(conditional).name()) << std::endl;
       auto discrete = conditional->asDiscreteConditional();
-      KeyVector frontals(discrete->frontals().begin(),
-                         discrete->frontals().end());
 
       // Apply prunerFunc to the underlying AlgebraicDecisionTree
       auto discreteTree =
@@ -116,6 +115,8 @@ void HybridBayesNet::updateDiscreteConditionals(
           discreteTree->apply(prunerFunc(*prunedDecisionTree, *conditional));
 
       // Create the new (hybrid) conditional
+      KeyVector frontals(discrete->frontals().begin(),
+                         discrete->frontals().end());
       auto prunedDiscrete = boost::make_shared<DiscreteLookupTable>(
           frontals.size(), conditional->discreteKeys(), prunedDiscreteTree);
       conditional = boost::make_shared<HybridConditional>(prunedDiscrete);
